@@ -33,7 +33,7 @@ npm install
 Untuk menjalankan project menggunakan command:
 
 ```bash
-npm server.js
+npm index.js
 ```
 
 Selanjutnya API sudah dapat digunakan. :))
