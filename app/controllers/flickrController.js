@@ -1,42 +1,42 @@
-const { CallTracker } = require('assert')
 const axios = require('axios')
 
-let paging = new Array()
-
+let dataFlickr = {}
+let tags = undefined
 //controller
 const flickr = async (req, res) => {
     try{
-        //paging
         if(req.query.page){
-            if(!paging[req.query.page]){
+            if(!dataFlickr.items || tags != req.query.tags){
                 let data = await getDataFlickr(req.query.id, req.query.ids, req.query.tags, req.query.tagmode, req.query.lang)
-                paging[req.query.page] = data
+                if(!data){
+                    return res.status(400).json({
+                        status : 'error',
+                        message : 'Data tidak ditemukan!',
+                    })
+                }
+                dataFlickr = data
+                tags = req.query.tags
             }
-            let response = {
+            return res.status(200).json({
                 status : 'success',
                 message : 'Berhasil mengambil data!',
-                page : req.query.page,
-            }
-            Object.assign(response, {
-                data : paging[req.query.page],
+                data : pagging(req.query.page, req.query.per_page || 4),
             })
-            return res.status(200).json(response)
         }
-
+        dataFlickr = {}
         let data = await getDataFlickr(req.query.id, req.query.ids, req.query.tags, req.query.tagmode, req.query.lang)
-        //reset paging
-        paging = new Array()
-        paging[1] = data
+        dataFlickr = data
+        tags = req.query.tags
         if(!data){
             return res.status(400).json({
                 status : 'error',
-                message : 'Gagal mengambil data!',
+                message : 'Data tidak ditemukan!',
             })
         }
         return res.status(200).json({
                 status : 'success',
                 message : 'Berhasil mengambil data!',
-                data : data,
+                data : pagging(),
             })
     } catch (err) {
         console.log(err)
@@ -69,6 +69,26 @@ async function getDataFlickr(id, ids, tags, tagmode, lang) {
   }
 }
 
+function pagging(page=1, per_page=4){
+    const total_page = Math.ceil(dataFlickr.items.length / per_page)
+    const total_data = dataFlickr.items.length
+    const start = (page - 1) * per_page
+    const end = start + per_page
+    if(page > total_page){
+        return 'Out of content!'
+    }
+    let data = {
+        title : dataFlickr.title,
+        description : dataFlickr.description,
+        modified : dataFlickr.modified,
+        total_data : total_data,
+        page : page,
+        per_page : per_page,
+        total_page : total_page,
+        data : dataFlickr.items.slice(start, end)
+    }
+    return data
+}
 
 module.exports = {
     flickr,
